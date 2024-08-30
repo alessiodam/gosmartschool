@@ -1,0 +1,6 @@
+- [x] Port essential stuff
+- [ ] Get websockets to work
+- [ ] Port more functions from alessiodam/SmartSchoolPyClient to here
+- [ ] Office365/Microsoft login support
+- [ ] Legacy login support
+- [ ] Add more docs
