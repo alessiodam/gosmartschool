@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 // FindUsersByName searches for users by name and returns a slice of structs.User.
@@ -27,15 +26,7 @@ func (client *SmartSchoolClient) FindUsersByName(name string) ([]structs.User, e
 	data.Set("parentNodeId", request.ParentNodeID)
 	data.Set("xml", request.XML)
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/?module=Messages&file=searchUsers", client.domain), strings.NewReader(data.Encode()))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Cookie", fmt.Sprintf("pid=%s; PHPSESSID=%s", client.Pid, client.PhpSessId))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.sendXmlRequest("POST", "/?module=Messages&file=searchUsers", data.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -27,7 +27,7 @@ func (client *SmartSchoolClient) sendXmlRequest(method string, url string, body 
 		return nil, err
 	}
 
-	client.apiLogger.Info("Response Status Code from API: %s", resp.StatusCode)
+	client.apiLogger.Info("Response Status Code from API: ", resp.StatusCode)
 
 	return resp, nil
 }

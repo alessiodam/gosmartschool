@@ -1,7 +1,9 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"io"
 	"net/http"
@@ -38,61 +40,95 @@ func (client *SmartSchoolClient) GetWebsocketTokenFromAPI() (string, error) {
 	return "", &ApiException{"Could not get websocket token"}
 }
 
-func (client *SmartSchoolClient) RunWebsocket() {
-	client.websocketLogger.Info("Connecting to websocket ")
-
-	c, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("wss://nodejs-gs.smartschool.be/smsc/websocket"), nil)
-	if err != nil {
-		client.websocketLogger.Fatal("Error while connecting to WebSocket:", err)
-	}
-	defer func(c *websocket.Conn) {
-		err := c.Close()
-		if err != nil {
-			client.websocketLogger.Error(err)
-		}
-	}(c)
-
-	authMessage := map[string]interface{}{
-		"type":    "auth",
-		"request": "checkToken",
-		"token":   client.userToken,
-	}
-
-	if err := c.WriteJSON(authMessage); err != nil {
-		client.websocketLogger.Fatal("Error while sending auth message:", err)
-	}
-
-	for {
-		var message map[string]interface{}
-		err := c.ReadJSON(&message)
-		if err != nil {
-			client.websocketLogger.Fatal("Error while reading message:", err)
-		}
-
-		client.websocketLogger.Debug("Received message:", message)
-		client.handleWebSocketMessage(message)
+func (client *SmartSchoolClient) wsOnError(c *websocket.Conn, err error) {
+	client.websocketLogger.Error("Error:", err)
+	if client.OnErrorHandler != nil {
+		client.OnErrorHandler(c, err)
 	}
 }
 
-func (client *SmartSchoolClient) handleWebSocketMessage(message map[string]interface{}) {
-	messageType := message["type"].(string)
-	messageRequest := message["request"].(string)
+func (client *SmartSchoolClient) wsOnClose(c *websocket.Conn, closeStatusCode int, closeMessage string) {
+	client.websocketLogger.Info(fmt.Sprintf("WebSocket connection closed: %d - %s", closeStatusCode, closeMessage))
+	if client.OnCloseHandler != nil {
+		client.OnCloseHandler(c, closeStatusCode, closeMessage)
+	}
+}
 
-	if messageType == "auth" && messageRequest == "getToken" {
-		client.websocketLogger.Info("Authentication successful!")
-	} else if messageType == "notificationListStart" {
-		client.websocketLogger.Info("Notification list started.")
-	} else if messageType == "getNotificationConfig" {
-		// configMessage := map[string]interface{}{
-		// 	"type":      "setConfig",
-		// 	"queueUuid": uuid.New().String(),
-		// }
-		// client.runWebSocket().WriteJSON(configMessage)
+func (client *SmartSchoolClient) wsOnMessage(c *websocket.Conn, message []byte) {
+	client.websocketLogger.Debug("Received message:", string(message))
+
+	var messageData map[string]interface{}
+	if err := json.Unmarshal(message, &messageData); err != nil {
+		client.websocketLogger.Error("Error unmarshalling message:", err)
+		return
 	}
 
-	if client.receivedMessageCallback != nil {
-		client.receivedMessageCallback(message)
-	} else {
-		client.websocketLogger.Info("Received message:", message["text"].(string))
+	messageType, typeOk := messageData["type"].(string)
+	messageRequest, requestOk := messageData["request"].(string)
+
+	handled := false
+	if typeOk && requestOk {
+		switch messageType {
+		case "auth":
+			if messageRequest == "getToken" {
+				client.websocketLogger.Info("Authentication successful!")
+				handled = true
+			}
+		case "notificationListStart":
+			client.websocketLogger.Info("Notification list started.")
+			handled = true
+		case "getNotificationConfig":
+			configMessage := map[string]interface{}{
+				"type":      "setConfig",
+				"queueUuid": uuid.New().String(),
+			}
+			if err := c.WriteJSON(configMessage); err != nil {
+				client.websocketLogger.Error("Error while sending config message:", err)
+			}
+			handled = true
+		}
+	}
+
+	// If the message wasn't handled, invoke the user-defined handler
+	if !handled && client.OnMessageHandler != nil {
+		client.OnMessageHandler(c, messageData)
+	}
+
+	// Call the ReceivedMessageCallback if it's defined
+	if client.ReceivedMessageCallback != nil {
+		client.ReceivedMessageCallback(messageData)
+	} else if text, ok := messageData["text"].(string); ok {
+		client.websocketLogger.Info("Received message:", text)
+	}
+}
+
+func (client *SmartSchoolClient) RunWebsocket() {
+	client.websocketLogger.Info("Connecting to WebSocket")
+
+	c, _, err := websocket.DefaultDialer.Dial("wss://nodejs-gs.smartschool.be/smsc/websocket", nil)
+	if err != nil {
+		client.websocketLogger.Fatal("Error while connecting to WebSocket:", err)
+		return
+	}
+	defer func(c *websocket.Conn) {
+		if err := c.Close(); err != nil {
+			client.websocketLogger.Error("Error while closing WebSocket connection:", err)
+		}
+	}(c)
+
+	//client.wsOnOpen(c)
+
+	for {
+		_, message, err := c.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err) {
+				client.wsOnClose(c, websocket.CloseNormalClosure, "Connection closed unexpectedly")
+			} else {
+				client.wsOnError(c, err)
+			}
+			break
+		}
+
+		client.wsOnMessage(c, message)
 	}
 }
