@@ -10,15 +10,15 @@ func (client *SmartSchoolClient) CheckIfAuthenticated() error {
 		return &AuthException{ApiException{"PID or PHPSESSID are not set"}}
 	}
 
-	client.apiLogger.Info("Checking authentication status")
-	resp, err := client.sendXmlRequest("GET", "/", "", nil)
+	client.ApiLogger.Info("Checking authentication status")
+	resp, _, err := client.sendXmlRequest("GET", "/", "", nil)
 	if err != nil {
 		return err
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			client.apiLogger.Error(err)
+			client.ApiLogger.Error(err)
 		}
 	}(resp.Body)
 

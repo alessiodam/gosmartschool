@@ -11,7 +11,7 @@ import (
 
 // FindUsersByName searches for users by name and returns a slice of structs.User.
 func (client *SmartSchoolClient) FindUsersByName(name string) ([]structs.User, error) {
-	client.apiLogger.Info("Requesting user from API")
+	client.ApiLogger.Info("Requesting user from API")
 
 	data := url.Values{}
 	request := structs.SearchUsersRequest{
@@ -26,19 +26,19 @@ func (client *SmartSchoolClient) FindUsersByName(name string) ([]structs.User, e
 	data.Set("parentNodeId", request.ParentNodeID)
 	data.Set("xml", request.XML)
 
-	resp, err := client.sendXmlRequest("POST", "/?module=Messages&file=searchUsers", data.Encode(), nil)
+	resp, _, err := client.sendXmlRequest("POST", "/?module=Messages&file=searchUsers", data.Encode(), nil)
 	if err != nil {
 		return nil, err
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
-			client.apiLogger.Error(err)
+			client.ApiLogger.Error(err)
 		}
 	}(resp.Body)
 
 	if resp.StatusCode == http.StatusOK {
-		client.apiLogger.Info("User received")
+		client.ApiLogger.Info("User received")
 		var response structs.SearchUsersResponse
 		xmlData, _ := io.ReadAll(resp.Body)
 		if err := xml.Unmarshal(xmlData, &response); err != nil {
@@ -48,6 +48,6 @@ func (client *SmartSchoolClient) FindUsersByName(name string) ([]structs.User, e
 		return response.Users, nil
 	}
 
-	client.apiLogger.Error("Could not get user")
+	client.ApiLogger.Error("Could not get user")
 	return nil, &ApiException{"Could not get user"}
 }

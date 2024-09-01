@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"gosmartschool/client"
 	"log"
@@ -22,4 +23,13 @@ func main() {
 		log.Fatalf("Failed to authenticate: %v", err)
 	}
 	log.Println("Authenticated!")
+
+	messages, err := smartSchoolClient.ListMessages(0)
+	if err != nil {
+		log.Fatalf("Failed to list messages: %v", err)
+	}
+	for _, message := range messages {
+		fmt.Printf("ID: %s, From: %s, Subject: %s, Date: %s, Unread: %s\n",
+			message.ID, message.From, message.Subject, message.Date, message.Unread)
+	}
 }

@@ -30,18 +30,19 @@ type SmartSchoolUser struct {
 }
 
 type SmartSchoolClient struct {
-	domain          string
-	platformId      string
-	PhpSessId       string
-	Pid             string
-	userID          string
-	userToken       string
-	apiLogger       *logrus.Logger
-	websocketLogger *logrus.Logger
-	authLogger      *logrus.Logger
+	domain     string
+	platformId string
+	PhpSessId  string
+	Pid        string
+	userToken  string
+
+	WriteApiLogs    bool
+	ApiLogger       *logrus.Logger
+	WebsocketLogger *logrus.Logger
+	AuthLogger      *logrus.Logger
 
 	ReceivedMessageCallback func(message map[string]interface{})
-	OnErrorHandler          WebSocketErrorHandler
-	OnCloseHandler          WebSocketCloseHandler
-	OnMessageHandler        WebSocketMessageHandler
+	onErrorHandler          WebSocketErrorHandler
+	onCloseHandler          WebSocketCloseHandler
+	onMessageHandler        WebSocketMessageHandler
 }

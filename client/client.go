@@ -1,20 +1,31 @@
 package client
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
+	"os"
 )
 
 func NewSmartSchoolClient(domain string) *SmartSchoolClient {
 	client := &SmartSchoolClient{
-		domain:          domain,
-		apiLogger:       logrus.New(),
-		websocketLogger: logrus.New(),
-		authLogger:      logrus.New(),
+		domain: domain,
+
+		WriteApiLogs:    os.Getenv("WRITE_API_LOGS") == "true",
+		ApiLogger:       logrus.New(),
+		WebsocketLogger: logrus.New(),
+		AuthLogger:      logrus.New(),
 	}
 
-	client.apiLogger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
-	client.websocketLogger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
-	client.authLogger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	client.ApiLogger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	client.WebsocketLogger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+	client.AuthLogger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
+
+	if client.WriteApiLogs {
+		err := os.Mkdir("./requests", 0755)
+		if err != nil {
+			client.ApiLogger.Error(fmt.Sprintf("Could not create ./requests directory: %s", err))
+		}
+	}
 
 	return client
 }
