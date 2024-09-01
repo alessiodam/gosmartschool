@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/joho/godotenv"
 	"gosmartschool/client"
 	"log"
@@ -25,12 +24,9 @@ func main() {
 	}
 	log.Println("Authenticated!")
 
-	messages, err := smartSchoolClient.ListMessages("inbox", 0)
+	user, err := smartSchoolClient.FindUsersByName("Alessio")
 	if err != nil {
-		log.Fatalf("Failed to list messages: %v", err)
+		log.Fatalf("Failed to find user: %v", err)
 	}
-	for _, message := range messages {
-		fmt.Printf("ID: %s, From: %s, Subject: %s, Date: %s, Unread: %s\n",
-			message.ID, message.From, message.Subject, message.Date, message.Unread)
-	}
+	log.Println(user)
 }

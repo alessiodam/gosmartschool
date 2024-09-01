@@ -12,7 +12,7 @@ import (
 
 // parseMessageListResponse parses the XML response for a list of messages and returns a slice of structs.Message.
 func (client *SmartSchoolClient) parseMessageListResponse(body io.Reader) ([]structs.Message, error) {
-	var server structs.MessageXMLServer
+	var server structs.XMLServer
 
 	if err := xml.NewDecoder(body).Decode(&server); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal XML: %w", err)
@@ -26,14 +26,14 @@ func (client *SmartSchoolClient) parseMessageListResponse(body io.Reader) ([]str
 	return messages, nil
 }
 
-func (client *SmartSchoolClient) constructListMessagesCommand(inboxId int) string {
+func (client *SmartSchoolClient) constructListMessagesCommand(boxType string, inboxId int) string {
 	return fmt.Sprintf(`
 		<request>
 			<command>
 				<subsystem>postboxes</subsystem>
 				<action>message list</action>
 				<params>
-					<param name="boxType"><![CDATA[inbox]]></param>
+					<param name="boxType"><![CDATA[%s]]></param>
 					<param name="boxID"><![CDATA[%d]]></param>
 					<param name="sortField"><![CDATA[date]]></param>
 					<param name="sortKey"><![CDATA[desc]]></param>
@@ -43,7 +43,7 @@ func (client *SmartSchoolClient) constructListMessagesCommand(inboxId int) strin
 				</params>
 			</command>
 		</request>
-	`, inboxId)
+	`, boxType, inboxId)
 }
 
 // constructGetMessageCommand constructs the XML command to retrieve a message by its ID.
@@ -79,11 +79,11 @@ func (client *SmartSchoolClient) constructDeleteMessageCommand(messageID string)
 // ListMessages retrieves a list of messages from the API and returns a slice of structs.Message.
 //
 // Returns last 50 messages because of SmartSchool API limitations.
-func (client *SmartSchoolClient) ListMessages(inboxId int) ([]structs.Message, error) {
+func (client *SmartSchoolClient) ListMessages(boxType string, inboxId int) ([]structs.Message, error) {
 	client.ApiLogger.Info("Requesting messages from API")
 
 	data := url.Values{}
-	data.Set("command", client.constructListMessagesCommand(inboxId))
+	data.Set("command", client.constructListMessagesCommand(boxType, inboxId))
 
 	resp, body, err := client.sendXmlRequest("POST", "/?module=Messages&file=dispatcher", data.Encode(), nil)
 	if err != nil {

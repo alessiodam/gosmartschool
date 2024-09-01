@@ -27,10 +27,10 @@ type MessageXMLAction struct {
 	Data MessageXMLData `xml:"data"`
 }
 
-type MessageXMLResponse struct {
+type XMLResponse struct {
 	Actions []MessageXMLAction `xml:"actions>action"`
 }
 
-type MessageXMLServer struct {
-	Response MessageXMLResponse `xml:"response"`
+type XMLServer struct {
+	Response XMLResponse `xml:"response"`
 }

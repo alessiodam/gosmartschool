@@ -20,8 +20,12 @@ for this, I'll use examples/auth_check
 1. Make a .env file with the following:
 ```dotenv
 DOMAIN=school.smartschool.be
+UNIQUEUSC=your unique usc
 PHPSESSID=your phpsessid cookies' value
 PID=your pid cookies' value
+
+# optional
+WRITE_API_LOGS=true # will save API logs to ./requests/{timestamp}
 ```
 2. Run `go run ./examples/auth_check/`
 3. You should get a message "Authenticated!" if your .env is correct.

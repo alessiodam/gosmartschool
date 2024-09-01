@@ -21,9 +21,11 @@ func NewSmartSchoolClient(domain string) *SmartSchoolClient {
 	client.AuthLogger.SetFormatter(&logrus.TextFormatter{FullTimestamp: true})
 
 	if client.WriteApiLogs {
-		err := os.Mkdir("./requests", 0755)
-		if err != nil {
-			client.ApiLogger.Error(fmt.Sprintf("Could not create ./requests directory: %s", err))
+		if _, err := os.Stat("./requests"); os.IsNotExist(err) {
+			err := os.Mkdir("./requests", 0755)
+			if err != nil {
+				client.ApiLogger.Error(fmt.Sprintf("Could not create ./requests directory: %s", err))
+			}
 		}
 	}
 

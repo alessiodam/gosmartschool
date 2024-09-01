@@ -32,9 +32,13 @@ type SmartSchoolUser struct {
 type SmartSchoolClient struct {
 	domain     string
 	platformId string
-	PhpSessId  string
-	Pid        string
-	userToken  string
+
+	UniqueUsc string
+	PhpSessId string
+	Pid       string
+	userToken string
+
+	User SmartSchoolUser
 
 	WriteApiLogs    bool
 	ApiLogger       *logrus.Logger
