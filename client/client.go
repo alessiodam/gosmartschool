@@ -3,6 +3,7 @@ package client
 import (
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"gosmartschool/client/microsoftlogin"
 	"os"
 )
 
@@ -30,4 +31,18 @@ func NewSmartSchoolClient(domain string) *SmartSchoolClient {
 	}
 
 	return client
+}
+
+func (client *SmartSchoolClient) MicrosoftLogin(domain string, microsoftEmail string, microsoftPassword string, twoFactorSecurityQuestions microsoftlogin.TwoFactorSecurityQuestions) (bool, error) {
+	phpSessId, err := microsoftlogin.MicrosoftLogin(domain, microsoftEmail, microsoftPassword, twoFactorSecurityQuestions)
+	if err != nil {
+		return false, err
+	}
+
+	client.PhpSessId = phpSessId
+	err = client.CheckIfAuthenticated()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }

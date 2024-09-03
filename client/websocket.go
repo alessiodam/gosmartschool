@@ -17,7 +17,7 @@ func (client *SmartSchoolClient) GetWebsocketTokenFromAPI() (string, error) {
 		return "", err
 	}
 
-	req.Header.Set("Cookie", fmt.Sprintf("PHPSESSID=%s; pid=%s", client.PhpSessId, client.Pid))
+	req.Header.Set("Cookie", fmt.Sprintf("PHPSESSID=%s", client.PhpSessId))
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
@@ -40,17 +40,28 @@ func (client *SmartSchoolClient) GetWebsocketTokenFromAPI() (string, error) {
 	return "", &ApiException{"Could not get websocket token"}
 }
 
+func (client *SmartSchoolClient) wsOnOpen(_ *websocket.Conn) error {
+	client.WebsocketLogger.Info("WebSocket connection opened")
+
+	apiToken, err := client.GetWebsocketTokenFromAPI()
+	if err != nil {
+		return err
+	}
+	client.websocketToken = apiToken
+	return nil
+}
+
 func (client *SmartSchoolClient) wsOnError(c *websocket.Conn, err error) {
 	client.WebsocketLogger.Error("Error:", err)
-	if client.onErrorHandler != nil {
-		client.onErrorHandler(c, err)
+	if client.wsOnErrorHandler != nil {
+		client.wsOnErrorHandler(c, err)
 	}
 }
 
 func (client *SmartSchoolClient) wsOnClose(c *websocket.Conn, closeStatusCode int, closeMessage string) {
 	client.WebsocketLogger.Info(fmt.Sprintf("WebSocket connection closed: %d - %s", closeStatusCode, closeMessage))
-	if client.onCloseHandler != nil {
-		client.onCloseHandler(c, closeStatusCode, closeMessage)
+	if client.wsOnCloseHandler != nil {
+		client.wsOnCloseHandler(c, closeStatusCode, closeMessage)
 	}
 }
 
@@ -90,8 +101,8 @@ func (client *SmartSchoolClient) wsOnMessage(c *websocket.Conn, message []byte) 
 	}
 
 	// If the message wasn't handled, invoke the user-defined handler
-	if !handled && client.onMessageHandler != nil {
-		client.onMessageHandler(c, messageData)
+	if !handled && client.wsOnMessageHandler != nil {
+		client.wsOnMessageHandler(c, messageData)
 	}
 
 	// Call the ReceivedMessageCallback if it's defined
@@ -105,7 +116,7 @@ func (client *SmartSchoolClient) wsOnMessage(c *websocket.Conn, message []byte) 
 func (client *SmartSchoolClient) RunWebsocket() {
 	client.WebsocketLogger.Info("Connecting to WebSocket")
 
-	c, _, err := websocket.DefaultDialer.Dial("wss://nodejs-gs.smartschool.be/smsc/websocket", nil)
+	wsConn, _, err := websocket.DefaultDialer.Dial("wss://nodejs-gs.smartschool.be/smsc/websocket", nil)
 	if err != nil {
 		client.WebsocketLogger.Fatal("Error while connecting to WebSocket:", err)
 		return
@@ -114,21 +125,24 @@ func (client *SmartSchoolClient) RunWebsocket() {
 		if err := c.Close(); err != nil {
 			client.WebsocketLogger.Error("Error while closing WebSocket connection:", err)
 		}
-	}(c)
+	}(wsConn)
 
-	//client.wsOnOpen(c)
+	err = client.wsOnOpen(wsConn)
+	if err != nil {
+		return
+	}
 
 	for {
-		_, message, err := c.ReadMessage()
+		_, message, err := wsConn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err) {
-				client.wsOnClose(c, websocket.CloseNormalClosure, "Connection closed unexpectedly")
+				client.wsOnClose(wsConn, websocket.CloseNormalClosure, "Connection closed unexpectedly")
 			} else {
-				client.wsOnError(c, err)
+				client.wsOnError(wsConn, err)
 			}
 			break
 		}
 
-		client.wsOnMessage(c, message)
+		client.wsOnMessage(wsConn, message)
 	}
 }

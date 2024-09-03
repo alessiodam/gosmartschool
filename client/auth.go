@@ -6,8 +6,8 @@ import (
 )
 
 func (client *SmartSchoolClient) CheckIfAuthenticated() error {
-	if client.Pid == "" || client.PhpSessId == "" {
-		return &AuthException{ApiException{"PID or PHPSESSID are not set"}}
+	if client.PhpSessId == "" {
+		return &AuthException{ApiException{"PHPSESSID are not set"}}
 	}
 
 	client.ApiLogger.Info("Checking authentication status")

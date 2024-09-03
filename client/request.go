@@ -17,7 +17,7 @@ func (client *SmartSchoolClient) sendRequest(method string, url string, body str
 		return nil, "", err
 	}
 
-	req.Header.Set("Cookie", fmt.Sprintf("pid=%s; PHPSESSID=%s", client.Pid, client.PhpSessId))
+	req.Header.Set("Cookie", fmt.Sprintf("PHPSESSID=%s", client.PhpSessId))
 	req.Header.Set("Host", client.domain)
 	req.Header.Set("Origin", fmt.Sprintf("https://%s", client.domain))
 
@@ -27,44 +27,47 @@ func (client *SmartSchoolClient) sendRequest(method string, url string, body str
 		}
 	}
 
-	timestamp := time.Now().Format("20060102_150405")
-	logFileName := fmt.Sprintf("./requests/%s.txt", timestamp)
-
-	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return nil, "", err
-	}
-	defer func(file *os.File) {
-		err := file.Close()
+	var file io.Writer
+	if client.WriteApiLogs {
+		timestamp := time.Now().Format("20060102_150405")
+		logFileName := fmt.Sprintf("./requests/%s.txt", timestamp)
+		file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			client.ApiLogger.Error(err)
+			return nil, "", err
 		}
-	}(file)
+		defer func(file *os.File) {
+			err := file.Close()
+			if err != nil {
+				client.ApiLogger.Error(err)
+			}
+		}(file)
 
-	_, _ = fmt.Fprintf(file, "Request:\n")
-	_, _ = fmt.Fprintf(file, "Method: %s\n", method)
-	_, _ = fmt.Fprintf(file, "URL: %s\n", fmt.Sprintf("https://%s%s", client.domain, url))
-	_, _ = fmt.Fprintf(file, "Headers:\n")
-	for k, v := range req.Header {
-		_, _ = fmt.Fprintf(file, "%s: %s\n", k, strings.Join(v, ", "))
+		_, _ = fmt.Fprintf(file, "Request:\n")
+		_, _ = fmt.Fprintf(file, "Method: %s\n", method)
+		_, _ = fmt.Fprintf(file, "URL: %s\n", fmt.Sprintf("https://%s%s", client.domain, url))
+		_, _ = fmt.Fprintf(file, "Headers:\n")
+		for k, v := range req.Header {
+			_, _ = fmt.Fprintf(file, "%s: %s\n", k, strings.Join(v, ", "))
+		}
+		_, _ = fmt.Fprintf(file, "Body:\n%s\n\n", body)
+
 	}
-	_, _ = fmt.Fprintf(file, "Body:\n%s\n\n", body)
-
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, "", err
 	}
 
-	_, _ = fmt.Fprintf(file, "Response Status Code: %d\n", resp.StatusCode)
+	if client.WriteApiLogs {
+		_, _ = fmt.Fprintf(file, "Response Status Code: %d\n", resp.StatusCode)
 
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, "", err
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, "", err
+		}
+		_, _ = fmt.Fprintf(file, "Response Body:\n%s\n", string(respBody))
 	}
-	_, _ = fmt.Fprintf(file, "Response Body:\n%s\n", string(respBody))
-
 	client.ApiLogger.Info(fmt.Sprintf("Response Status Code from API: %d", resp.StatusCode))
-
+	respBody, err := io.ReadAll(resp.Body)
 	return resp, string(respBody), nil
 }
 

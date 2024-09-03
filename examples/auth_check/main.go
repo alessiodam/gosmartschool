@@ -14,9 +14,7 @@ func main() {
 	}
 
 	smartSchoolClient := client.NewSmartSchoolClient(os.Getenv("DOMAIN"))
-	smartSchoolClient.UniqueUsc = os.Getenv("UNIQUEUSC")
 	smartSchoolClient.PhpSessId = os.Getenv("PHPSESSID")
-	smartSchoolClient.Pid = os.Getenv("PID")
 
 	err = smartSchoolClient.CheckIfAuthenticated()
 	if err != nil {

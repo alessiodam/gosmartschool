@@ -35,7 +35,6 @@ type SmartSchoolClient struct {
 
 	UniqueUsc string
 	PhpSessId string
-	Pid       string
 	userToken string
 
 	User SmartSchoolUser
@@ -45,8 +44,9 @@ type SmartSchoolClient struct {
 	WebsocketLogger *logrus.Logger
 	AuthLogger      *logrus.Logger
 
+	websocketToken          string
 	ReceivedMessageCallback func(message map[string]interface{})
-	onErrorHandler          WebSocketErrorHandler
-	onCloseHandler          WebSocketCloseHandler
-	onMessageHandler        WebSocketMessageHandler
+	wsOnErrorHandler        WebSocketErrorHandler
+	wsOnCloseHandler        WebSocketCloseHandler
+	wsOnMessageHandler      WebSocketMessageHandler
 }
