@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-func (client *SmartSchoolClient) sendXmlRequest(method string, url string, body string, extraHeaders map[string]string) (*http.Response, string, error) {
-	client.ApiLogger.Info("Sending request to API")
+func (client *SmartSchoolClient) sendRequest(method string, url string, body string, extraHeaders *http.Header) (*http.Response, string, error) {
+	client.ApiLogger.Info(fmt.Sprintf("Sending request to API: %s %s", method, url))
 
 	req, err := http.NewRequest(method, fmt.Sprintf("https://%s%s", client.domain, url), strings.NewReader(body))
 	if err != nil {
@@ -18,10 +18,13 @@ func (client *SmartSchoolClient) sendXmlRequest(method string, url string, body 
 	}
 
 	req.Header.Set("Cookie", fmt.Sprintf("pid=%s; PHPSESSID=%s", client.Pid, client.PhpSessId))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-	req.Header.Set("X-Requested-With", "XMLHttpRequest")
-	for k, v := range extraHeaders {
-		req.Header.Set(k, v)
+	req.Header.Set("Host", client.domain)
+	req.Header.Set("Origin", fmt.Sprintf("https://%s", client.domain))
+
+	if extraHeaders != nil {
+		for k, v := range *extraHeaders {
+			req.Header[k] = v
+		}
 	}
 
 	timestamp := time.Now().Format("20060102_150405")
@@ -60,7 +63,16 @@ func (client *SmartSchoolClient) sendXmlRequest(method string, url string, body 
 	}
 	_, _ = fmt.Fprintf(file, "Response Body:\n%s\n", string(respBody))
 
-	client.ApiLogger.Info("Response Status Code from API: ", resp.StatusCode)
+	client.ApiLogger.Info(fmt.Sprintf("Response Status Code from API: %d", resp.StatusCode))
 
 	return resp, string(respBody), nil
+}
+
+func (client *SmartSchoolClient) sendXmlRequest(method string, url string, body string, extraHeaders *http.Header) (*http.Response, string, error) {
+	if extraHeaders == nil {
+		extraHeaders = &http.Header{}
+	}
+	extraHeaders.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+	extraHeaders.Set("X-Requested-With", "XMLHttpRequest")
+	return client.sendRequest(method, url, body, extraHeaders)
 }

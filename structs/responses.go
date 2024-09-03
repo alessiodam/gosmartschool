@@ -20,3 +20,13 @@ type SearchUsersResponse struct {
 	XMLName xml.Name `xml:"results"`
 	Users   []User   `xml:"user"`
 }
+
+type Course struct {
+	Icon       string `json:"icon"`
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	PlatformID int    `json:"platformId"`
+	Teacher    string `json:"teacher"`
+	URL        string `json:"url"`
+	Descr      string `json:"descr"`
+}
